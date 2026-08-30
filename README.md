@@ -1,67 +1,62 @@
-# 제스처 제어 기반 객체 추적 로봇 시스템
+# Gesture-Controlled Object Tracking Robot
 
-MediaPipe와 OpenCV로 제스처 및 색상 객체를 인식하고, ROS2 Python 노드로
-시뮬레이션 로봇을 제어하는 입문 프로젝트입니다.
+> 🎓 ROKEY 부트캠프 스터디 **5인 팀 프로젝트** (2026.07.10 ~ 2026.08.05)
+> 📦 원본(팀 저장소): [Jik-Kim/study-project](https://github.com/Jik-Kim/study-project)
 
-## 프로젝트 정보
+손동작으로 로봇의 물체 추적을 제어하는 시스템입니다.
+손 보자기 → `START`(추적 시작), 주먹 → `STOP`(추적 정지).
+카메라가 HSV 색상 기반으로 물체를 인식하고, turtlesim(2D) · Gazebo/TurtleBot3(3D)
+시뮬레이션에서 로봇이 대상을 추적합니다.
 
-- 기간: 2026-07-10 ~ 2026-08-05
-- 팀원: 김병직, 김도윤, 황인재, 조정묵, 이시율
-- 기술 방향: Python 3.12, ROS2 Jazzy, rclpy, rosidl, OpenCV, MediaPipe
+## 🎬 Demo
 
-## 기준 문서
+<!-- 여기에 GIF 또는 영상 파일을 드래그해서 넣기 -->
+채우기: 시연 GIF
 
-- [프로젝트 SOT](docs/SOT.md)
-- [영역별 책임](docs/responsibilities.md)
-- [아키텍처](docs/architecture.md)
-- [인터페이스](docs/interfaces.md)
-- [개발 환경](docs/setup.md)
-- [작업 목록](docs/todo.md)
+## 🙋 나의 역할 (Injae Hwang)
 
-## 프로젝트 구조
+- **추적 제어 노드(controller_node) 개발/개선**
+  - 물체 수평 위치 오차 → 각속도, 크기(면적) 차이 → 선속도로 변환하는 pursuit 제어
+  - 물체 소실 시 속도 0 정지 처리 (추적 상태는 유지 → 재감지 시 자동 재개)
+- **제어 파라미터 튜닝** — 이동 제어 게인 초깃값 조정
+- **시뮬레이션 통합 환경 구축** — `sim_bringup` 패키지 작성, Gazebo / TurtleBot3 연동 launch 구성
+- 제어 노드 토픽 네이밍을 팀 인터페이스 규약(SOT)에 맞게 정리
+- 시뮬레이션 UI 기능 개발 참여
 
-```text
-ros2_ws/src/
-├── gesture_robot_interfaces/  # ament_cmake + rosidl 메시지 계약
-├── gesture_robot/             # ament_python + rclpy 애플리케이션
-│   ├── gesture_robot/
-│   ├── config/
-│   ├── launch/
-│   ├── setup.py
-│   ├── setup.cfg
-│   └── package.xml
-└── sim_bringup/               # turtlesim 및 통합 launch
-```
+> PR: [#11](https://github.com/Jik-Kim/study-project/pull/11) ·
+> [#15](https://github.com/Jik-Kim/study-project/pull/15) ·
+> [#19](https://github.com/Jik-Kim/study-project/pull/19)
 
-## 주요 기능
+## 🧩 System Architecture
 
-- **제스처 인식 (MediaPipe)**: 손 보자기를 `START`(추적 시작), 주먹을 `STOP`(추적 정지) 명령으로 변환
-- **객체 추적 (OpenCV)**: HSV 색상 영역(기본: 빨간 공) 및 손 중심 좌표 추적
-- **시뮬레이션 로봇 제어**: `turtlesim` 2D MVP 및 `Gazebo` 3D (TurtleBot3) 자율 추적 제어
-- **ROS2 노드 간 커스텀 통신**: rosidl 기반 `GestureCommand`, `TrackedObject` 토픽 발행
-- **통합 모니터링 UI (`main_ui`)**: 카메라 영상/랜드마크, 토픽 활성 상태, 속도 실시간 그래프, 수치 모니터링 제공
+| 노드 | 역할 |
+|---|---|
+| `camera_node` | 카메라 프레임 캡처 |
+| `gesture_node` | MediaPipe 손 랜드마크 → 제스처 인식 |
+| `object_tracking_node` | HSV 색상 필터로 물체 검출 |
+| `controller_node` | 위치·크기 오차 → 로봇 속도 명령 (담당) |
+| `main_ui` | Tkinter 기반 카메라/상태/텔레메트리 시각화 |
 
-## 빌드 및 실행
+## 🛠️ Tech Stack
 
-### 1. Python 의존성 설치
+Python 3.12 · ROS 2 Jazzy · rclpy · OpenCV · MediaPipe · Gazebo · turtlesim
+
+## ▶️ 실행 방법
+
+채우기: 원본 저장소 README의 설치/빌드/실행 명령을 그대로 복사해서 넣기
+(대략 아래 형태)
+
 ```bash
-pip install --break-system-packages "numpy==1.26.4" "mediapipe==0.10.14"
-```
+# 의존성 설치
+pip install -r requirements.txt
 
-### 2. 패키지 빌드 및 환경 로드
-```bash
+# 빌드
 cd ros2_ws
-colcon build --symlink-install
+colcon build
 source install/setup.bash
-```
 
-### 3. 시뮬레이션 실행
+# 2D (turtlesim) 실행
+ros2 launch sim_bringup <turtlesim_launch_file>
 
-- **turtlesim 2D MVP 실행**:
-  ```bash
-  ros2 launch sim_bringup turtlesim_bringup.launch.py
-  ```
-- **Gazebo 3D 시뮬레이션 실행**:
-  ```bash
-  ros2 launch sim_bringup gazebo_bringup.launch.py
-  ```
+# 3D (Gazebo) 실행
+ros2 launch sim_bringup <gazebo_launch_file>
