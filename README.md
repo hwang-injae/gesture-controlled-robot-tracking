@@ -37,7 +37,7 @@ camera ─┤                                              ├─▶ controller_
 ## 🙋 나의 역할 — 상태 및 이동 제어 (Control)
 
 > 제스처와 추적 오차를 입력받아 로봇 속도 명령을 생성하는 파트를 담당했습니다.
-> `controller_node`, `tracking_controller.py`, `tracking_state.py`는 전부 직접 설계·구현했습니다.
+> `controller_node`, `tracking_controller.py`, `tracking_state.py`를 맡아 설계·구현했습니다.
 
 ### 1. 제어 인터페이스 계약 설계
 
