@@ -11,7 +11,7 @@
 
 손 제스처로 로봇의 물체 추적을 켜고 끕니다. **보자기 → 추적 시작, 주먹 → 정지.** 카메라가 HSV 색상으로 빨간 공을 찾으면, 화면 중심 대비 위치 · 면적 오차를 속도 명령으로 바꿔 turtlesim(2D) · Gazebo(3D) 로봇이 공을 따라갑니다.
 
-Gazebo의 로봇을 실제 AMR로 보고, 빨간 공이 가까워지는 것을 벽 · 장애물에 가까워지는 상황으로 가정했습니다. 공이 화면에서 커질수록 감속해 목표 거리에서 정지하고, 출발 · 정지는 사람의 손동작으로 제어합니다.
+Gazebo의 로봇을 실제 AMR로 보고, 공에 가까워질수록 감속해 목표 거리에서 정지하는 동작을 **벽 · 장애물 앞에서 안전하게 멈추는 상황**으로 가정했습니다. 공을 목표물로 삼아 조향 · 접근하되 안전거리를 유지하며 정지하고, 출발 · 정지는 사람의 손동작으로 제어합니다.
 
 > ROKEY 9기 미니 프로젝트 · 2026.07.10 ~ 08.05 — 팀 저장소 [Jik-Kim/study-project](https://github.com/Jik-Kim/study-project)를 fork해 담당 역할을 덧붙인 개인 포트폴리오판입니다. 다른 미니 프로젝트는 [rokey-mini-projects](https://github.com/hwang-injae/rokey-mini-projects)에 있습니다.
 >
@@ -19,7 +19,7 @@ Gazebo의 로봇을 실제 AMR로 보고, 빨간 공이 가까워지는 것을 �
 
 ## 💡 한눈에
 
-ROS 2의 노드 · 토픽 · rosidl 메시지 · 파라미터 · launch를 익히면서, 카메라 하나로 **손 제스처와 물체를 함께 인식해 로봇을 움직이는** 시스템을 5명이 나눠 만들었습니다.
+ROS 2의 노드 · 토픽 · rosidl 메시지 · 파라미터 · launch를 익히면서, 카메라 하나로 **손 제스처와 물체를 함께 인식해 로봇을 움직이는** 시스템을 팀이 파트를 나눠 만들었습니다.
 
 ```text
 웹캠 ─┬─▶ 손 제스처 인식(MediaPipe) ──▶ START / STOP ─────────┐
@@ -61,14 +61,9 @@ flowchart LR
 | `gesture_robot` | 노드 · 핵심 로직(`core/` — 색 추적 · 제스처 분류 · 추적 상태 · 이동 제어) · 어댑터(OpenCV · MediaPipe · turtlesim) · 시각화 · UI |
 | `sim_bringup` | turtlesim · Gazebo(TurtleBot3) 실행 launch |
 
-팀이 합의한 기준은 [docs/SOT.md](docs/SOT.md), 노드 사이 약속은 [docs/interfaces.md](docs/interfaces.md), 데이터 흐름은 [docs/architecture.md](docs/architecture.md), 환경 설정은 [docs/setup.md](docs/setup.md)에 있습니다.
+팀이 합의한 기준은 [docs/SOT.md](docs/SOT.md), 노드 간 인터페이스는 [docs/interfaces.md](docs/interfaces.md), 데이터 흐름은 [docs/architecture.md](docs/architecture.md), 환경 설정은 [docs/setup.md](docs/setup.md)에 있습니다.
 
 </details>
-
-## 📊 결과
-
-- 팀 통합 테스트에서 게인을 보정한 뒤, 제스처로 추적을 시작 · 정지하며 turtlesim · Gazebo 로봇이 공을 따라가는 시연을 했습니다(8/4 촬영, 영상은 이 저장소에 없음).
-- 단위 시험 **7개 통과** — 제어기(`test_tracking_controller.py`) 3개 · 색 검출(`test_color_tracker.py`) 4개.
 
 ## 🙋 담당 역할
 
@@ -87,29 +82,41 @@ flowchart LR
 4. **제어 ROS 2 노드** (`nodes/controller_node.py`)
    - 이동 제어 파라미터 8종을 선언해 실행 중 튜닝 가능
    - `/gesture/command`(RELIABLE) · `/tracking/object`(BEST_EFFORT) 구독 → `/turtle1/cmd_vel` 발행
-   - **안전 정지 3가지:** STOP 제스처 즉시 정지 · `detected=false` 즉시 정지 · 10 Hz 타이머로 추적 신호가 끊기면 정지. 다시 검출되고 상태가 `START`면 자동으로 이어 감
-5. **시험 · 튜닝** — `TrackingController` 단위 시험(목표 면적에서 정지 · 과대 검출 때 후진 안 함 · STOP · 미검출 때 0 속도)을 쓰고, 통합 테스트 뒤 게인 초깃값을 `0.004`로 보정했습니다.
+   - **안전 정지 3가지:** STOP 제스처 즉시 정지 · `detected=false` 즉시 정지 · 10 Hz 타이머로 추적 신호가 끊기면 정지. 다시 검출되고 상태가 `START`면 자동으로 추적을 재개
+5. **시험 · 튜닝** — `TrackingController` 단위 테스트(목표 면적에서 정지 · 과대 검출 때 후진 안 함 · STOP · 미검출 때 0 속도)를 작성하고, 통합 테스트 뒤 게인 초깃값을 `0.004`로 보정했습니다.
 
-그 외로 `sim_bringup` 패키지를 처음 만들고 turtlesim / Gazebo bringup launch를 처음 작성했습니다(이후 4분할 UI · Gazebo 확장은 통합 담당 팀원이 발전시킴). 통합 · 시각화 · 검증 파트의 리뷰도 맡았습니다. 관련 PR: [#2](https://github.com/Jik-Kim/study-project/pull/2) · [#14](https://github.com/Jik-Kim/study-project/pull/14) · [#18](https://github.com/Jik-Kim/study-project/pull/18)
+추가로 `sim_bringup` 패키지의 초기 구성과 turtlesim / Gazebo bringup launch 초안을 작성했습니다(이후 4분할 UI · Gazebo 확장은 통합 담당 팀원이 발전시킴). 통합 · 시각화 · 검증 파트의 리뷰도 맡았습니다. 관련 PR: [#2](https://github.com/Jik-Kim/study-project/pull/2) · [#14](https://github.com/Jik-Kim/study-project/pull/14) · [#18](https://github.com/Jik-Kim/study-project/pull/18)
 
-## 🧩 기술적 도전 · 배운 점
+## 🧩 트러블슈팅
 
-| 문제 | 해결 | 배운 점 |
-|---|---|---|
-| 제스처 명령과 추적 결과는 성격이 다르다 | 제스처 명령은 유실되면 안 되어 `RELIABLE`, 추적 결과는 최신값이 중요해 `BEST_EFFORT`로 나눔 | 한 노드 안에서도 토픽 성격에 따라 QoS를 달리해야 함 |
-| 추적 메시지가 끊겨도 구독 콜백만으로는 알 수 없다 | 마지막 수신 시각을 검사하는 10 Hz 타이머로 타임아웃 정지 | "신호 없음"은 따로 감시해야 함 |
-| 게인이 크면 목표 면적 부근에서 진동, 작으면 반응이 느림 | deadband와 함께 통합 테스트로 게인 `0.004`로 맞춤 | 비례 제어는 실제 화면에서 튜닝해야 함 |
-| MediaPipe 설치가 `numpy`를 2.x로 올려 ROS 2 Jazzy `cv_bridge`와 충돌(`KeyError: 16`) — 팀 공통 | `numpy==1.26.4` + `mediapipe==0.10.14`로 고정하고 [docs/setup.md](docs/setup.md)에 기록 | ROS 2와 함께 쓰는 Python 패키지는 버전을 고정해야 함 |
+| 문제 | 원인 | 어떻게 해결했나 | 결과 |
+|---|---|---|---|
+| 제스처 명령이 유실되거나 추적 결과가 밀림 | 성격이 다른 두 토픽에 같은 QoS 적용 | 제스처 명령은 `RELIABLE`, 추적 결과는 `BEST_EFFORT`(KEEP_LAST 1)로 분리 | 명령 유실 없이 최신 추적값 사용 |
+| 추적 메시지가 끊겨도 로봇이 계속 움직임 | 구독 콜백만으로는 "신호 없음"을 알 수 없음 | 마지막 수신 시각을 검사하는 10 Hz 타이머로 타임아웃 정지 | 신호 끊김 시 즉시 정지 |
+| 목표 면적 부근에서 진동하거나 반응이 느림 | 비례 게인이 크거나 작음 | deadband 적용 · 통합 테스트로 게인 `0.004` 보정 | 목표 거리에서 안정 정지 |
+| ROS 2 Jazzy `cv_bridge` 충돌(`KeyError: 16`) — 팀 공통 | MediaPipe 설치가 `numpy`를 2.x로 올림 | `numpy==1.26.4` · `mediapipe==0.10.14` 고정, [docs/setup.md](docs/setup.md)에 기록 | 팀 전체 환경 통일 |
 
-## ⚠️ 한계
+## 📊 결과
 
-- 실제 로봇이 아니라 turtlesim · Gazebo 시뮬레이션에서만 동작합니다.
-- 거리는 검출 면적으로 근사하고 `error_y`는 쓰지 않았습니다. 색은 HSV로 빨간 공 하나만 찾아 조명에 민감합니다.
+- 팀 통합 테스트에서 게인을 보정한 뒤, 제스처로 추적을 시작 · 정지하며 turtlesim · Gazebo 로봇이 공을 따라가는 시연을 했습니다(8/4 촬영, 영상은 이 저장소에 없음).
+- 단위 시험 **7개 통과** — 제어기(`test_tracking_controller.py`) 3개 · 색 검출(`test_color_tracker.py`) 4개.
+
+## 🌱 배운 점 · 추후 개선 과제
+
+- 한 노드 안에서도 토픽 성격에 따라 QoS를 달리해야 하고, "신호 없음"은 콜백과 별도로 감시해야 합니다.
+- 비례 제어 게인은 실제 화면에서 튜닝해야 하며, 단위 시험은 정지 조건(목표 면적 · 과대 검출 · STOP · 미검출)처럼 안전과 직결된 규칙에 먼저 두는 것이 효과적이었습니다.
+- ROS 2와 함께 쓰는 Python 패키지는 버전을 고정해야 합니다. 버전 고정은 임시 대응이고, 근본 해결은 Docker 컨테이너로 노드마다 의존성을 격리하는 방식이라고 판단합니다.
+
+**추후 개선 과제**
+
+- turtlesim · Gazebo 시뮬레이션에서만 검증했습니다. 실제 AMR 적용이 다음 단계입니다.
+- 거리는 검출 면적으로 근사하고 `error_y`는 쓰지 않았습니다. 깊이 카메라나 라이다 거리로 바꾸면 조명 영향을 줄일 수 있습니다.
+- 색은 HSV로 빨간 공 하나만 찾아 조명에 민감합니다. 학습 기반 검출기로 바꾸는 것이 다음 단계입니다.
 - 8/4 시연 영상은 이 저장소에 없습니다.
 
 ## 👥 팀 · 역할
 
-| 파트 | 맡은 것 |
+| 파트 | 담당 |
 |---|---|
 | 제스처 인식 | 카메라 입력에서 손 제스처 명령과 신뢰도 출력 |
 | 객체 추적 | 지정 색상의 검출 여부와 위치 오차 출력 |
@@ -125,7 +132,7 @@ flowchart LR
 <summary>의존성 · 빌드 · turtlesim / Gazebo 실행</summary>
 
 ```bash
-# 1. Python 의존성 (ROS 2 Jazzy 와 맞는 조합 — 버전 고정 필수)
+# 1. Python 의존성 (ROS 2 Jazzy와 맞는 조합 — 버전 고정 필수)
 pip install --break-system-packages "numpy==1.26.4" "mediapipe==0.10.14"
 
 # 2. 빌드 · 환경 로드
