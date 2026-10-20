@@ -13,9 +13,9 @@
 
 Gazebo의 로봇을 실제 AMR로 보고, 빨간 공이 가까워지는 것을 벽 · 장애물에 가까워지는 상황으로 가정했습니다. 공이 화면에서 커질수록 감속해 목표 거리에서 정지하고, 출발 · 정지는 사람의 손동작으로 제어합니다.
 
-> ROKEY 9기 스터디 **5인 팀 프로젝트** · 2026.07.10 ~ 08.05 — 팀 저장소 [Jik-Kim/study-project](https://github.com/Jik-Kim/study-project)를 fork해 내 역할을 덧붙인 개인 포트폴리오판입니다.
+> ROKEY 9기 미니 프로젝트 — 스터디 **5인 팀** · 2026.07.10 ~ 08.05 — 팀 저장소 [Jik-Kim/study-project](https://github.com/Jik-Kim/study-project)를 fork해 담당 역할을 덧붙인 개인 포트폴리오판입니다. 다른 미니 프로젝트는 [rokey-mini-projects](https://github.com/hwang-injae/rokey-mini-projects)에 있습니다.
 >
-> **내 역할(황인재):** 상태 · 이동 제어 — `controller_node` · 제어 알고리즘 · 추적 상태 머신 → [내가 한 것](#-내가-한-것)
+> **담당 역할(황인재):** 상태 · 이동 제어 — `controller_node` · 제어 알고리즘 · 추적 상태 머신 → [담당 역할](#-담당-역할)
 
 ## 💡 한눈에
 
@@ -70,7 +70,7 @@ flowchart LR
 - 팀 통합 테스트에서 게인을 보정한 뒤, 제스처로 추적을 시작 · 정지하며 turtlesim · Gazebo 로봇이 공을 따라가는 시연을 했습니다(8/4 촬영, 영상은 이 저장소에 없음).
 - 단위 시험 **7개 통과** — 제어기(`test_tracking_controller.py`) 3개 · 색 검출(`test_color_tracker.py`) 4개.
 
-## 🙋 내가 한 것
+## 🙋 담당 역할
 
 제스처와 추적 오차를 받아 로봇 속도 명령을 만드는 **상태 · 이동 제어 파트**를 맡아, `controller_node` · `tracking_controller.py` · `tracking_state.py`를 설계 · 구현했습니다.
 
